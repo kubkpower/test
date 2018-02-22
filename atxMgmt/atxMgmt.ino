@@ -11,6 +11,7 @@
  
  */
 
+#include "resources.h"
 //#define DEBUG
 
 // Constants
@@ -25,54 +26,51 @@ const byte RGB_BLUE_PIN = 5;
 const unsigned long SHUTDOWN_TIMEOUT = 240000; //the timeout in milliseconds
 const int DEBOUNCE_TIME = 15;                 // ms
 const int BLINK_SPEED = 500;                  // ms
-											  // Variables
-volatile bool btn_pressed = false;
-volatile bool rpi_status_triggered = false;
+
+// Variables
+
 bool psu_state_on = false;
 bool rpi_started = false;
 bool enable_blink = false;
-unsigned long startingTime = 0; //used to store the starting moment
+
+unsigned long startingTime = 0; //used to store the start of shutdown request
 unsigned long blinkTime = 0;
 
 // Need to be volatile to be accessible from IRQ function
 volatile unsigned long lastBtnPressed = 0;
 volatile unsigned long lastRpiStateReport = 0;
+volatile bool btn_pressed = false;
+volatile bool rpi_status_triggered = false;
 
-enum ledColor {
-	RED,
-	GREEN,
-	BLUE,
-	NONE
-};
-
-ledColor currentColor = NONE;
+// Managing RGB LED
+ledColor currentColor = ledColor::NONE;
 bool ledOn = true;
 
 // Routine to set the front LED color (RGB LED)
 void setLedColor(ledColor color) {
 	switch (color) {
-	case NONE:
+	case ledColor::NONE:
 		digitalWrite(RGB_RED_PIN, LOW);
 		digitalWrite(RGB_GREEN_PIN, LOW);
 		digitalWrite(RGB_BLUE_PIN, LOW);
 		break;
-	case RED:
+	case ledColor::RED:
 		digitalWrite(RGB_GREEN_PIN, LOW);
 		digitalWrite(RGB_BLUE_PIN, LOW);
 		digitalWrite(RGB_RED_PIN, HIGH);
-		currentColor = RED;
+		currentColor = ledColor::RED;
 		break;
-	case BLUE:
+	case ledColor::BLUE:
 		digitalWrite(RGB_RED_PIN, LOW);
 		digitalWrite(RGB_GREEN_PIN, LOW);
 		digitalWrite(RGB_BLUE_PIN, HIGH);
-		currentColor = BLUE;
+		currentColor = ledColor::BLUE;
 		break;
-	case GREEN:
+	case ledColor::GREEN:
 		digitalWrite(RGB_RED_PIN, LOW);
 		digitalWrite(RGB_BLUE_PIN, LOW);
 		digitalWrite(RGB_GREEN_PIN, HIGH);
-		currentColor = GREEN;
+		currentColor = ledColor::GREEN;
 		break;
 	}
 }
@@ -82,14 +80,14 @@ void updateLedStatus() {
 	// Update LED status
 	if (psu_state_on) {
 		if (rpi_started) {
-			setLedColor(GREEN);
+			setLedColor(ledColor::GREEN);
 		}
 		else {
-			setLedColor(RED);
+			setLedColor(ledColor::RED);
 		}
 	}
 	else {
-		setLedColor(BLUE);
+		setLedColor(ledColor::BLUE);
 	}
 }
 
@@ -97,7 +95,7 @@ void updateLedStatus() {
 void blinkLed() {
 	if ((enable_blink) && ((millis() - blinkTime) > BLINK_SPEED)) {
 		if (ledOn) {
-			setLedColor(NONE);
+			setLedColor(ledColor::NONE);
 		}
 		else {
 			setLedColor(currentColor);
